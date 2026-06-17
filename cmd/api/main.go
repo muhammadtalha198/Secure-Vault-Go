@@ -1,32 +1,35 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"log/slog"
 	"os"
 
-	"github.com/gin-gonic/gin"
+	"github.com/muhammadtalha198/secure-vault-api/internal/config"
 )
 
 func main() {
-	// Read PORT from environment; if not set, use 3000
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
+	config, err := config.Load()
+	if err != nil {
+		log.Fatalf("config.Load() failed: %v", err)
 	}
 
-	// Gin engine = your HTTP server + router
-	router := gin.Default()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	slog.SetDefault(logger)
 
-	// When someone visits GET /health, return JSON
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
-	})
+	slog.Info("config loaded successfully")
+	slog.Debug("config loaded successfully")
 
-	// Start listening on :3000 (or whatever PORT is)
-	log.Printf("API listening on http://localhost:%s", port)
-	if err := router.Run(":" + port); err != nil {
-		log.Fatal(err)
-	}
+	fmt.Printf("DatabaseURL: %s\n", config.DatabaseURL)
+	fmt.Printf("RedisURL: %s\n", config.RedisURL)
+	fmt.Printf("Port: %s\n", config.Port)
+	fmt.Printf("CORSOrigin: %s\n", config.CORSOrigin)
+	fmt.Printf("RateLimitLogin: %d\n", config.RateLimitLogin)
+	fmt.Printf("StorageQuotaFreeGB: %d\n", config.StorageQuotaFreeGB)
+	fmt.Printf("MaxUploadSizeMB: %d\n", config.MaxUploadSizeMB)
+	fmt.Printf("JWT private key loaded: %t\n", config.JWTPrivateKey != nil)
+	fmt.Printf("JWT public key loaded: %t\n", config.JWTPublicKey != nil)
 }
