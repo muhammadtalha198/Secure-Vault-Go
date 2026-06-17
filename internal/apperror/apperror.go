@@ -1,43 +1,74 @@
-package apperror
+package apperrors
 
 import (
 	"errors"
 	"fmt"
-	"net/http"
 )
 
+// Sentinel errors (simple, static)
+var (
+	ErrVaultNotFound      = errors.New("vault not found")
+	ErrDocumentNotFound   = errors.New("document not found")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrSeedPhraseRequired = errors.New("seed phrase required for recovery")
+)
+
+// AppError - structured error with HTTP mapping
 type AppError struct {
-	StatusCode int
-	Message    string
-	Err        error
+	Code       string `json:"code"`
+	Message    string `json:"message"`
+	StatusCode int    `json:"-"`
+	Err        error  `json:"-"`
 }
 
-// Error implements the error interface
 func (e *AppError) Error() string {
-	return fmt.Sprintf("code: %s, message: %s, error: %v", e.StatusCode, e.Message, e.Err)
+	return e.Message
 }
 
-// Helper function to craete specific error
-func ErrnotFound(msg string) *AppError {
+func (e *AppError) Unwrap() error {
+	return e.Err
+}
+
+// Predefined error constructors
+func VaultNotFound(id string) *AppError {
 	return &AppError{
-		StatusCode: http.StatusNotFound,
-		Message:    msg,
-		Err:        errors.New("not found"),
+		Code:       "VAULT_NOT_FOUND",
+		Message:    fmt.Sprintf("Vault %s not found", id),
+		StatusCode: 404,
+		Err:        ErrVaultNotFound,
 	}
 }
 
-func ErrUnauthorized(msg string) *AppError {
+func DocumentNotFound(id string) *AppError {
 	return &AppError{
-		StatusCode: http.StatusUnauthorized,
-		Message:    msg,
-		Err:        errors.New("unauthorized"),
+		Code:       "DOCUMENT_NOT_FOUND",
+		Message:    fmt.Sprintf("Document %s not found", id),
+		StatusCode: 404,
+		Err:        ErrDocumentNotFound,
 	}
 }
 
-func ErrTooManyRequests(msg string) *AppError {
+func Unauthorized(msg string) *AppError {
 	return &AppError{
-		StatusCode: http.StatusTooManyRequests,
+		Code:       "UNAUTHORIZED",
 		Message:    msg,
-		Err:        errors.New("too many requests"),
+		StatusCode: 401,
+	}
+}
+
+func BadRequest(msg string) *AppError {
+	return &AppError{
+		Code:       "BAD_REQUEST",
+		Message:    msg,
+		StatusCode: 400,
+	}
+}
+
+func Internal(msg string, err error) *AppError {
+	return &AppError{
+		Code:       "INTERNAL_ERROR",
+		Message:    msg,
+		StatusCode: 500,
+		Err:        err,
 	}
 }

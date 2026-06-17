@@ -1,35 +1,57 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
-	"log/slog"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/muhammadtalha198/secure-vault-api/internal/config"
+	"github.com/muhammadtalha198/secure-vault-api/internal/server"
+	// "github.com/muhammadtalha198/secure-vault-api/looger"
 )
 
 func main() {
-	config, err := config.Load()
+	// Initialize logger first (so we can log startup)
+	// logger.Setup()
+
+	// Load configuration
+	// Fail fast if required env vars are missing
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("config.Load() failed: %v", err)
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
-	slog.SetDefault(logger)
+	// Create server with all dependencies wired
+	srv := server.New(cfg)
 
-	slog.Info("config loaded successfully")
-	slog.Debug("config loaded successfully")
+	// Set up graceful shutdown
+	// Listen for OS signals (SIGTERM, SIGINT)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 
-	fmt.Printf("DatabaseURL: %s\n", config.DatabaseURL)
-	fmt.Printf("RedisURL: %s\n", config.RedisURL)
-	fmt.Printf("Port: %s\n", config.Port)
-	fmt.Printf("CORSOrigin: %s\n", config.CORSOrigin)
-	fmt.Printf("RateLimitLogin: %d\n", config.RateLimitLogin)
-	fmt.Printf("StorageQuotaFreeGB: %d\n", config.StorageQuotaFreeGB)
-	fmt.Printf("MaxUploadSizeMB: %d\n", config.MaxUploadSizeMB)
-	fmt.Printf("JWT private key loaded: %t\n", config.JWTPrivateKey != nil)
-	fmt.Printf("JWT public key loaded: %t\n", config.JWTPublicKey != nil)
+	// Start server in a goroutine so it doesn't block
+	go func() {
+		log.Printf("Server starting on port %s", cfg.Port)
+		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed to start: %v", err)
+		}
+	}()
+
+	// Block until we receive a shutdown signal
+	<-quit
+	log.Println("Shutting down server...")
+
+	// Give active requests 10 seconds to finish
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server exited gracefully")
 }
