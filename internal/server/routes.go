@@ -2,14 +2,20 @@ package server
 
 import (
 	"net/http"
-	
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // SetupRoutes configures the HTTP routes for the server
 func (s *Server) registerRoutes() {
-	// Health check (no auth required)
+	// Health checks (no auth required)
 	s.router.GET("/health", s.healthHandler.HandleHealth)
+	s.router.GET("/health/db", s.healthHandler.HandleDBHealth)
+
+	// Swagger UI
+	s.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API v1 group
 	v1 := s.router.Group("/api/v1")

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/muhammadtalha198/secure-vault-api/internal/config"
 	"github.com/muhammadtalha198/secure-vault-api/internal/handler"
 )
@@ -18,19 +19,14 @@ type Server struct {
 	healthHandler *handler.HealthHandler
 }
 
-// NewServer creates a new server with the given configuration
-func New(cfg *config.Config) *Server {
-
-	// Create Gin router
-	// Use gin.New() for explicit control over middleware
-
+// New creates a new server with the given configuration and dependencies.
+func New(cfg *config.Config, db *pgxpool.Pool) *Server {
 	router := gin.New()
 
-	// Create server
 	server := &Server{
 		router:        router,
 		config:        cfg,
-		healthHandler: handler.NewHealthHandler(),
+		healthHandler: handler.NewHealthHandler(db),
 	}
 
 	// We'll add middleware and routes in separate functions

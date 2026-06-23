@@ -1,0 +1,44 @@
+basePath: /
+host: localhost:3000
+info:
+  contact: {}
+  description: End-to-end encrypted document vault API
+  title: Secure Vault API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Returns basic API health status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: API health check
+      tags:
+      - health
+  /health/db:
+    get:
+      description: Pings PostgreSQL and returns connection status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Database health check
+      tags:
+      - health
+schemes:
+- http
+swagger: "2.0"

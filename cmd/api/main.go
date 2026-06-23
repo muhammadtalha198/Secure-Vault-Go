@@ -10,10 +10,18 @@ import (
 	"time"
 
 	"github.com/muhammadtalha198/secure-vault-api/internal/config"
+	"github.com/muhammadtalha198/secure-vault-api/internal/repository"
 	"github.com/muhammadtalha198/secure-vault-api/internal/server"
-	// "github.com/muhammadtalha198/secure-vault-api/looger"
+
+	_ "github.com/muhammadtalha198/secure-vault-api/docs"
 )
 
+// @title           Secure Vault API
+// @version         1.0
+// @description     End-to-end encrypted document vault API
+// @host            localhost:3000
+// @BasePath        /
+// @schemes         http
 func main() {
 	// Initialize logger first (so we can log startup)
 	// logger.Setup()
@@ -25,8 +33,14 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Create server with all dependencies wired
-	srv := server.New(cfg)
+	dbPool, err := repository.NewPool(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer dbPool.Close()
+	log.Println("Database connected successfully")
+
+	srv := server.New(cfg, dbPool)
 
 	// Set up graceful shutdown
 	// Listen for OS signals (SIGTERM, SIGINT)
@@ -35,7 +49,11 @@ func main() {
 
 	// Start server in a goroutine so it doesn't block
 	go func() {
-		log.Printf("Server starting on port %s", cfg.Port)
+		baseURL := "http://localhost:" + cfg.Port
+		log.Printf("Server running at %s", baseURL)
+		log.Printf("Health check: %s/health", baseURL)
+		log.Printf("DB health:    %s/health/db", baseURL)
+		log.Printf("Swagger UI:   %s/swagger/index.html", baseURL)
 		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed to start: %v", err)
 		}

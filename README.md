@@ -194,3 +194,13 @@ Also have a look at the [FAQ](FAQ.md).
 ---
 
 Looking for alternatives? [https://awesome-go.com/#database](https://awesome-go.com/#database).
+
+http status 
+
+http.StatusOK                  // 200
+http.StatusCreated             // 201
+http.StatusBadRequest          // 400
+http.StatusUnauthorized        // 401
+http.StatusForbidden           // 403
+http.StatusNotFound            // 404
+http.StatusInternalServerError // 500

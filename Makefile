@@ -1,4 +1,4 @@
-.PHONY: run build test lint migrate-up migrate-down docker-up docker-down clean
+.PHONY: run build test lint migrate-up migrate-down docker-up docker-down clean swagger
 
 # Run the API server locally
 run:
@@ -50,3 +50,9 @@ fmt:
 deps:
 	go mod download
 	go mod tidy
+
+# Generate Swagger docs from annotations
+SWAG := $(shell go env GOPATH)/bin/swag
+swagger:
+	@test -x $(SWAG) || go install github.com/swaggo/swag/cmd/swag@v1.16.4
+	$(SWAG) init -g cmd/api/main.go -o docs --parseDependency --parseInternal
